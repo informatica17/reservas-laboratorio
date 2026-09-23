@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Reservas - Colegio Bicentenario Salesiano Domingo Savio</title>
+  
+  <!-- Carga del SDK cliente de Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+
+    .header {
+      text-align: center; background: #003366; color: white; padding: 20px;
+      border-radius: 8px; margin-bottom: 20px; position: relative;
+      display: flex; align-items: center; justify-content: center; gap: 20px;
+    }
+    .header-logo { height: 65px; width: auto; object-fit: contain; }
+    .header-titles { text-align: left; }
+    .header h1 { margin: 5px 0 0 0; font-size: 1.8rem; }
+    .header h2 { margin: 0; font-size: 1rem; font-weight: 300; opacity: 0.9; }
+
+    .btn-admin-login {
+      position: absolute; top: 15px; right: 15px; background: rgba(255, 255, 255, 0.2);
+      border: 1px solid white; color: white; padding: 6px 12px; border-radius: 4px;
+      cursor: pointer; font-size: 0.85rem;
+    }
+    .btn-admin-login:hover { background: rgba(255, 255, 255, 0.4); }
+
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+    .tab { padding: 10px 20px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .tab.active { background: #003366; color: white; }
+
+    .container { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+    @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+
+    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
+    .form-group input, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; }
+
+    .grid-bloques { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .btn-bloque { padding: 8px; border: 1px solid #0056b3; background: #f8f9fa; color: #0056b3; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
+    .btn-bloque.selected { background: #0056b3; color: white; }
+
+    .btn-submit { width: 100%; padding: 10px; background: #003366; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+    .semana-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .btn-nav { padding: 6px 12px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; }
+
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: center; font-size: 0.85rem; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background: #f0f4f8; }
+
+    .td-disponible { background: #e8f5e9; color: #2e7d32; }
+    .td-ocupado { background: #ffebee; color: #c62828; }
+    .td-bloqueado { background: #eeeeee; color: #616161; font-weight: bold; }
+    .td-admin-selected { background: #fff59d !important; color: #000 !important; outline: 2px dashed #f57f17; font-weight: bold; }
+
+    .admin-bar-acciones { background: #fff3cd; border: 1px solid #ffeeba; padding: 10px 15px; border-radius: 6px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: white; padding: 25px; border-radius: 8px; text-align: center; max-width: 400px; width: 90%; }
+    .modal-icon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <img id="imgLogoHeader" src="https://www.domingosavio.cl/images/magone/insignia.png" alt="Insignia Colegio" class="header-logo">
+    <div class="header-titles">
+      <h2>Colegio Bicentenario Salesiano Domingo Savio</h2>
+      <h1>Gestión de Reservas de Laboratorios</h1>
+    </div>
+    <button type="button" class="btn-admin-login" onclick="autenticarAdmin()">🔑 Modo Admin</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="seleccionarLab('Primer Piso', this)">Primer Piso</button>
+    <button class="tab" onclick="seleccionarLab('Segundo Piso', this)">Segundo Piso</button>
+    <button class="tab" onclick="seleccionarLab('Tercer Piso', this)">Tercer Piso</button>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h3>Realizar Reserva</h3>
+      <form onsubmit="procesarFormulario(event)">
+        <div class="form-group">
+          <label for="nombreProfesor">Nombre del Profesor:</label>
+          <input type="text" id="nombreProfesor" required placeholder="Ingrese nombre y apellido">
+        </div>
+
+        <div class="form-group">
+          <label for="curso">Curso:</label>
+          <select id="curso" required></select>
+        </div>
+
+        <div class="form-group">
+          <label for="asignatura">Asignatura:</label>
+          <select id="asignatura" required></select>
+        </div>
+
+        <div class="form-group">
+          <label for="fecha">Fecha de Reserva:</label>
+          <input type="date" id="fecha" required onchange="sincronizarFechaYRefrescar()">
+        </div>
+
+        <div class="form-group">
+          <label>Seleccione Bloque(s):</label>
+          <div id="contenedorBloques" class="grid-bloques"></div>
+        </div>
+
+        <button type="submit" id="btnConfirmar" class="btn-submit">Confirmar Reserva</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="semana-header">
+        <button type="button" class="btn-nav" onclick="cambiarSemana(-7)">⬅️ Semana Anterior</button>
+        <h3>Disponibilidad Semanal</h3>
+        <button type="button" class="btn-nav" onclick="cambiarSemana(7)">Semana Siguiente ➡️</button>
+      </div>
+
+      <div id="barraAccionesAdmin" class="admin-bar-acciones" style="display: none;">
+        <span><strong>Celdas seleccionadas:</strong> <span id="contadorSeleccionadosAdmin">0</span></span>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn-submit" style="background:#dc3545; padding: 6px 12px;" onclick="ejecutarAccionMasiva('BLOQUEAR')">🔒 Bloquear Seleccionados</button>
+          <button type="button" class="btn-submit" style="background:#28a745; padding: 6px 12px;" onclick="ejecutarAccionMasiva('LIBERAR')">🔓 Liberar Seleccionados</button>
+          <button type="button" class="btn-nav" onclick="limpiarSeleccionAdmin()">Limpiar</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table id="tablaSemanal">
+          <thead><tr></tr></thead>
+          <tbody><tr><td colspan="6">Cargando horario...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="seccionAdminPanel" class="container" style="display: none; margin-top: 20px;">
+    <div class="card" style="border: 2px solid #0056b3;">
+      <h3>⚙️ Panel Administrador</h3>
+      <p><small>Haz clic en una o varias celdas de la tabla para seleccionarlas y usa la barra superior para <strong>Bloquear</strong> o <strong>Liberar</strong> en grupo.</small></p>
+      <button type="button" class="btn-submit" style="background-color: #28a745;" onclick="solicitarReporteUso()">📊 Generar Reporte de Uso</button>
+      <div id="contenidoReporte" style="margin-top: 15px;"></div>
+    </div>
+  </div>
+
+  <div id="modalNotificacion" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <span id="modalIcon" class="modal-icon">ℹ️</span>
+      <h3 id="modalTitle">Atención</h3>
+      <p id="modalMessage">Mensaje...</p>
+      <button type="button" class="btn-submit" onclick="cerrarModal()">Aceptar</button>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // CONFIGURACIÓN DE SUPABASE
+    // -------------------------------------------------------------
+    const SUPABASE_URL = 'https://eivekzpaavvkwgiegrfm.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpdmVrenBhYXZ2a3dnamVncmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNDE2NzUsImV4cCI6MjEwNTcxNzY3NX0.X8YwpsAxNASryBwp9q1zlC0vSlG9aiHIEb7iGwNtwLU';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const CLAVE_ADMIN = "admin123";
+
+    // -------------------------------------------------------------
+    // VARIABLES DE ESTADO LOCAL
+    // -------------------------------------------------------------
+    var labSeleccionado = 'Primer Piso';
+    var fechaReferenciaSemana = new Date();
+    var bloquesSeleccionados = [];
+    var sesionAdminActiva = false;
+    var celdasAdminSeleccionadas = [];
+
+    const cursosLista = [
+      'Pre-Kínder A', 'Kínder A', 'Kínder B',
+      '1° Básico A', '1° Básico B', '2° Básico A', '2° Básico B',
+      '3° Básico A', '3° Básico B', '4° Básico A', '4° Básico B',
+      '5° Básico A', '5° Básico B', '6° Básico A', '6° Básico B',
+      '7° Básico A', '7° Básico B', '8° Básico A', '8° Básico B',
+      'I° Medio A', 'I° Medio B', 'I° Medio C',
+      'II° Medio A', 'II° Medio B', 'II° Medio C',
+      'III° Medio A', 'III° Medio B', 'III° Medio C', 'III° Medio D',
+      'IV° Medio A', 'IV° Medio B', 'IV° Medio C'
+    ];
+
+    const asignaturasLista = [
+      'Lenguaje y Comunicación', 'Matemáticas', 'Historia, Geografía y C. Sociales',
+      'Ciencias Naturales', 'Biología', 'Física', 'Química', 'Inglés',
+      'Educación Física y Salud', 'Artes Visuales', 'Música', 'Tecnología',
+      'Orientación', 'Religión', 'Otros'
+    ];
+
+    const horariosPorPiso = {
+      'Primer Piso': [
+        { id: 'B1', hora: '08:00 a 08:45' }, { id: 'B2', hora: '08:45 a 09:30' },
+        { id: 'B3', hora: '09:45 a 10:30' }, { id: 'B4', hora: '10:30 a 11:15' },
+        { id: 'B5', hora: '11:30 a 12:15' }, { id: 'B6', hora: '12:15 a 13:00' },
+        { id: 'B7', hora: '13:45 a 14:30' }, { id: 'B8', hora: '14:30 a 15:15' }
+      ],
+      'Segundo Piso': [
+        { id: 'B1', hora: '08:00 a 08:45' }, { id: 'B2', hora: '08:45 a 09:30' },
+        { id: 'B3', hora: '09:30 a 10:15' }, { id: 'B4', hora: '10:35 a 11:20' },
+        { id: 'B5', hora: '11:20 a 12:05' }, { id: 'B6', hora: '12:20 a 13:05' },
+        { id: 'B7', hora: '13:05 a 13:50' }, { id: 'B8', hora: '13:50 a 14:35' },
+        { id: 'B9', hora: '14:35 a 15:20' }, { id: 'B10', hora: '15:20 a 16:05' }
+      ],
+      'Tercer Piso': [
+        { id: 'B1', hora: '08:00 a 08:45' }, { id: 'B2', hora: '08:45 a 09:30' },
+        { id: 'B3', hora: '09:30 a 10:15' }, { id: 'B4', hora: '10:35 a 11:20' },
+        { id: 'B5', hora: '11:20 a 12:05' }, { id: 'B6', hora: '12:20 a 13:05' },
+        { id: 'B7', hora: '13:05 a 13:50' }, { id: 'B8', hora: '13:50 a 14:35' },
+        { id: 'B9', hora: '14:35 a 15:20' }, { id: 'B10', hora: '15:20 a 16:05' }
+      ]
+    };
+
+    // -------------------------------------------------------------
+    // INICIALIZACIÓN
+    // -------------------------------------------------------------
+    window.onload = function() {
+      var hoy = new Date();
+      var fechaMin = new Date(hoy);
+      fechaMin.setDate(hoy.getDate() + 2);
+      var fechaMax = new Date(hoy);
+      fechaMax.setDate(hoy.getDate() + 14);
+
+      var minStr = formatearFechaIso(fechaMin);
+      var maxStr = formatearFechaIso(fechaMax);
+
+      var inputFecha = document.getElementById('fecha');
+      if (inputFecha) {
+        inputFecha.min = minStr;
+        inputFecha.max = maxStr;
+        inputFecha.value = minStr;
+      }
+
+      fechaReferenciaSemana = obtenerFechaSinHora(minStr);
+
+      poblarSelect('curso', cursosLista);
+      poblarSelect('asignatura', asignaturasLista);
+      renderizarBloques();
+      cargarVistaSemanal();
+    };
+
+    // -------------------------------------------------------------
+    // FUNCIONES AUXILIARES Y FORMATO
+    // -------------------------------------------------------------
+    function formatearFechaIso(fecha) {
+      var d = new Date(fecha);
+      var yyyy = d.getFullYear();
+      var mm = String(d.getMonth() + 1).padStart(2, '0');
+      var dd = String(d.getDate()).padStart(2, '0');
+      return yyyy + '-' + mm + '-' + dd;
+    }
+
+    function obtenerFechaSinHora(cadena) {
+      var p = cadena.split('-');
+      return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+    }
+
+    function poblarSelect(idSelect, opciones) {
+      var sel = document.getElementById(idSelect);
+      sel.innerHTML = '<option value="">Seleccione una opción...</option>';
+      opciones.forEach(item => {
+        var opt = document.createElement('option');
+        opt.value = item; opt.innerText = item;
+        sel.appendChild(opt);
+      });
+    }
+
+    function renderizarBloques() {
+      var contenedor = document.getElementById('contenedorBloques');
+      contenedor.innerHTML = '';
+      bloquesSeleccionados = [];
+      var bloques = horariosPorPiso[labSeleccionado];
+
+      bloques.forEach(b => {
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'btn-bloque'; btn.innerText = b.hora;
+        btn.onclick = function() { seleccionarBloque(this, b.id); };
+        contenedor.appendChild(btn);
+      });
+    }
+
+    function seleccionarBloque(btn, idBloque) {
+      var idx = bloquesSeleccionados.indexOf(idBloque);
+      if (idx > -1) {
+        bloquesSeleccionados.splice(idx, 1);
+        btn.classList.remove('selected');
+      } else {
+        bloquesSeleccionados.push(idBloque);
+        btn.classList.add('selected');
+      }
+    }
+
+    function seleccionarLab(nombreLab, elementoTab) {
+      labSeleccionado = nombreLab;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      elementoTab.classList.add('active');
+      limpiarSeleccionAdmin();
+      renderizarBloques();
+      sincronizarFechaYRefrescar();
+    }
+
+    function sincronizarFechaYRefrescar() {
+      var inputVal = document.getElementById('fecha').value;
+      if (inputVal) {
+        fechaReferenciaSemana = obtenerFechaSinHora(inputVal);
+      }
+      limpiarSeleccionAdmin();
+      cargarVistaSemanal();
+    }
+
+    function cambiarSemana(dias) {
+      fechaReferenciaSemana.setDate(fechaReferenciaSemana.getDate() + dias);
+      var iso = formatearFechaIso(fechaReferenciaSemana);
+      document.getElementById('fecha').value = iso;
+      limpiarSeleccionAdmin();
+      cargarVistaSemanal();
+    }
+
+    // -------------------------------------------------------------
+    // CONSULTAS EN TIEMPO REAL A SUPABASE
+    // -------------------------------------------------------------
+    async function cargarVistaSemanal() {
+      var tbody = document.querySelector('#tablaSemanal tbody');
+      tbody.innerHTML = '<tr><td colspan="6">Cargando disponibilidad...</td></tr>';
+
+      // 1. Calcular rango de fechas de la semana
+      var diaSem = fechaReferenciaSemana.getDay();
+      var diffLunes = fechaReferenciaSemana.getDate() - diaSem + (diaSem === 0 ? -6 : 1);
+      var lunes = new Date(fechaReferenciaSemana.getFullYear(), fechaReferenciaSemana.getMonth(), diffLunes);
+
+      var diasSemana = [];
+      var nombres = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+      for (var i = 0; i < 5; i++) {
+        var d = new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() + i);
+        diasSemana.push({
+          nombreDia: nombres[i],
+          fechaIso: formatearFechaIso(d),
+          fechaCorta: d.getDate() + '/' + (d.getMonth() + 1)
+        });
+      }
+
+      var inicioSemana = diasSemana[0].fechaIso;
+      var finSemana = diasSemana[4].fechaIso;
+
+      // 2. Traer Reservas y Bloqueos desde Supabase
+      const { data: reservas, error: errRes } = await _supabase
+        .from('reservas')
+        .select('*')
+        .eq('laboratorio', labSeleccionado)
+        .gte('fecha', inicioSemana)
+        .lte('fecha', finSemana);
+
+      const { data: bloqueos, error: errBloq } = await _supabase
+        .from('bloqueos')
+        .select('*')
+        .eq('laboratorio', labSeleccionado)
+        .gte('fecha', inicioSemana)
+        .lte('fecha', finSemana);
+
+      if (errRes || errBloq) {
+        tbody.innerHTML = '<tr><td colspan="6" style="color:red;">Error al conectar con la base de datos.</td></tr>';
+        return;
+      }
+
+      var matrizReservas = {};
+      (bloqueos || []).forEach(b => {
+        matrizReservas[b.fecha + '_' + b.bloque] = { estado: 'Bloqueado' };
+      });
+      (reservas || []).forEach(r => {
+        matrizReservas[r.fecha + '_' + r.bloque] = {
+          estado: 'Ocupado',
+          profesor: r.profesor,
+          curso: r.curso
+        };
+      });
+
+      renderizarTablaSemanal({
+        bloques: horariosPorPiso[labSeleccionado],
+        diasSemana: diasSemana,
+        matrizReservas: matrizReservas
+      });
+    }
+
+    function renderizarTablaSemanal(datos) {
+      var tabla = document.getElementById('tablaSemanal');
+      var thead = tabla.querySelector('thead tr');
+      var tbody = tabla.querySelector('tbody');
+
+      var htmlHead = '<th>Hora</th>';
+      datos.diasSemana.forEach(d => {
+        htmlHead += '<th>' + d.nombreDia + '<br><small>' + d.fechaCorta + '</small></th>';
+      });
+      thead.innerHTML = htmlHead;
+
+      tbody.innerHTML = '';
+      datos.bloques.forEach(b => {
+        var tr = document.createElement('tr');
+        var tdHora = document.createElement('td');
+        tdHora.innerHTML = '<strong>' + b.hora + '</strong>';
+        tr.appendChild(tdHora);
+
+        datos.diasSemana.forEach(d => {
+          var td = document.createElement('td');
+          var key = d.fechaIso + '_' + b.id;
+          var estado = datos.matrizReservas[key] || { estado: 'Disponible' };
+
+          if (estado.estado === 'Bloqueado') {
+            td.className = 'td-bloqueado';
+            td.innerText = '🔒 BLOQUEADO';
+          } else if (estado.estado === 'Ocupado') {
+            td.className = 'td-ocupado';
+            td.innerHTML = '<span>' + estado.profesor + '</span><br><small>' + estado.curso + '</small>';
+          } else {
+            td.className = 'td-disponible';
+            td.innerText = 'Disponible';
+          }
+
+          var yaSeleccionada = celdasAdminSeleccionadas.some(s => s.fecha === d.fechaIso && s.bloque === b.id);
+          if (yaSeleccionada) td.classList.add('td-admin-selected');
+
+          if (sesionAdminActiva) {
+            td.style.cursor = 'pointer';
+            td.onclick = function() { toggleSeleccionAdminCelda(td, d.fechaIso, b.id); };
+          }
+
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    // -------------------------------------------------------------
+    // GUARDAR RESERVA
+    // -------------------------------------------------------------
+    async function procesarFormulario(e) {
+      e.preventDefault();
+      var inputFecha = document.getElementById('fecha').value;
+
+      if (!sesionAdminActiva) {
+        var hoy = new Date(); hoy.setHours(0,0,0,0);
+        var fechaSel = obtenerFechaSinHora(inputFecha);
+        var difDias = Math.floor((fechaSel - hoy) / (1000 * 60 * 60 * 24));
+
+        if (difDias < 2) return mostrarModal('Atención', 'Las reservas deben hacerse con al menos 2 días de anticipación.', '⚠️');
+        if (difDias > 14) return mostrarModal('Atención', 'No se permiten reservas con más de 2 semanas de anticipación.', '⚠️');
+      }
+
+      if (bloquesSeleccionados.length === 0) return mostrarModal('Atención', 'Selecciona al menos un bloque horario.', '⚠️');
+
+      var btn = document.getElementById('btnConfirmar');
+      btn.disabled = true; btn.innerText = 'Guardando reserva...';
+
+      var profesor = document.getElementById('nombreProfesor').value;
+      var curso = document.getElementById('curso').value;
+      var asignatura = document.getElementById('asignatura').value;
+
+      var ins = bloquesSeleccionados.map(b => ({
+        laboratorio: labSeleccionado,
+        fecha: inputFecha,
+        bloque: b,
+        profesor: profesor,
+        curso: curso,
+        asignatura: asignatura
+      }));
+
+      const { data, error } = await _supabase.from('reservas').insert(ins);
+
+      btn.disabled = false; btn.innerText = 'Confirmar Reserva';
+
+      if (error) {
+        mostrarModal('Error', 'No se pudo registrar la reserva. El bloque ya podría estar ocupado.', '❌');
+      } else {
+        mostrarModal('Éxito', 'Reserva realizada correctamente.', '✅');
+        bloquesSeleccionados = [];
+        document.querySelectorAll('.btn-bloque').forEach(b => b.classList.remove('selected'));
+        sincronizarFechaYRefrescar();
+      }
+    }
+
+    // -------------------------------------------------------------
+    // MODULO ADMINISTRADOR
+    // -------------------------------------------------------------
+    function autenticarAdmin() {
+      var claveInput = prompt('Ingrese la clave de administrador:');
+      if (!claveInput) return;
+
+      if (claveInput === CLAVE_ADMIN) {
+        sesionAdminActiva = true;
+        var inputFecha = document.getElementById('fecha');
+        if (inputFecha) { inputFecha.removeAttribute('min'); inputFecha.removeAttribute('max'); }
+
+        mostrarModal('Modo Admin', 'Sesión de administrador activada. Puede seleccionar cualquier fecha.', '🔓');
+        document.getElementById('seccionAdminPanel').style.display = 'block';
+        document.getElementById('barraAccionesAdmin').style.display = 'flex';
+        cargarVistaSemanal();
+      } else {
+        mostrarModal('Acceso Denegado', 'Clave de administrador incorrecta.', '🔒');
+      }
+    }
+
+    function toggleSeleccionAdminCelda(elemTd, fechaIso, bloqueId) {
+      if (!sesionAdminActiva) return;
+      var idx = celdasAdminSeleccionadas.findIndex(s => s.fecha === fechaIso && s.bloque === bloqueId);
+
+      if (idx > -1) {
+        celdasAdminSeleccionadas.splice(idx, 1);
+        elemTd.classList.remove('td-admin-selected');
+      } else {
+        celdasAdminSeleccionadas.push({ fecha: fechaIso, bloque: bloqueId });
+        elemTd.classList.add('td-admin-selected');
+      }
+      document.getElementById('contadorSeleccionadosAdmin').innerText = celdasAdminSeleccionadas.length;
+    }
+
+    function limpiarSeleccionAdmin() {
+      celdasAdminSeleccionadas = [];
+      var cnt = document.getElementById('contadorSeleccionadosAdmin');
+      if (cnt) cnt.innerText = '0';
+      document.querySelectorAll('.td-admin-selected').forEach(td => td.classList.remove('td-admin-selected'));
+    }
+
+    async function ejecutarAccionMasiva(accion) {
+      if (!sesionAdminActiva || celdasAdminSeleccionadas.length === 0) {
+        return mostrarModal('Atención', 'Selecciona al menos una celda de la tabla.', '⚠️');
+      }
+
+      if (!confirm('¿Seguro de ' + accion + ' las ' + celdasAdminSeleccionadas.length + ' celdas seleccionadas?')) return;
+
+      if (accion === 'BLOQUEAR') {
+        var bloqueosNuevos = celdasAdminSeleccionadas.map(s => ({
+          laboratorio: labSeleccionado, fecha: s.fecha, bloque: s.bloque
+        }));
+        await _supabase.from('bloqueos').insert(bloqueosNuevos);
+      } else if (accion === 'LIBERAR') {
+        for (var item of celdasAdminSeleccionadas) {
+          await _supabase.from('bloqueos').delete().match({ laboratorio: labSeleccionado, fecha: item.fecha, bloque: item.bloque });
+          await _supabase.from('reservas').delete().match({ laboratorio: labSeleccionado, fecha: item.fecha, bloque: item.bloque });
+        }
+      }
+
+      mostrarModal('Éxito', 'Acción realizada correctamente.', '✅');
+      limpiarSeleccionAdmin();
+      cargarVistaSemanal();
+    }
+
+    async function solicitarReporteUso() {
+      const { data: reservas } = await _supabase.from('reservas').select('*');
+      var contenedor = document.getElementById('contenidoReporte');
+
+      if (!reservas || reservas.length === 0) {
+        contenedor.innerHTML = '<p>No hay reservas registradas.</p>';
+        return;
+      }
+
+      var porLab = {}, porCurso = {}, porProfesor = {};
+      reservas.forEach(r => {
+        porLab[r.laboratorio] = (porLab[r.laboratorio] || 0) + 1;
+        porCurso[r.curso] = (porCurso[r.curso] || 0) + 1;
+        porProfesor[r.profesor] = (porProfesor[r.profesor] || 0) + 1;
+      });
+
+      var html = '<div style="background:#fff; padding:15px; border-radius:6px; border:1px solid #ddd;">';
+      html += '<p><strong>Total bloques reservados:</strong> ' + reservas.length + '</p>';
+      html += '<strong>Por Laboratorio:</strong><ul>';
+      for (var l in porLab) html += '<li>' + l + ': ' + porLab[l] + '</li>';
+      html += '</ul><strong>Por Curso:</strong><ul>';
+      for (var c in porCurso) html += '<li>' + c + ': ' + porCurso[c] + '</li>';
+      html += '</ul><strong>Por Profesor:</strong><ul>';
+      for (var p in porProfesor) html += '<li>' + p + ': ' + porProfesor[p] + '</li>';
+      html += '</ul></div>';
+
+      contenedor.innerHTML = html;
+    }
+
+    function mostrarModal(titulo, mensaje, icono) {
+      document.getElementById('modalTitle').innerText = titulo;
+      document.getElementById('modalMessage').innerText = mensaje;
+      document.getElementById('modalIcon').innerText = icono || 'ℹ️';
+      document.getElementById('modalNotificacion').style.display = 'flex';
+    }
+
+    function cerrarModal() {
+      document.getElementById('modalNotificacion').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
