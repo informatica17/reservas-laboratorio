@@ -354,6 +354,7 @@
     var claveAdminSesion = 'admin123';
     
     var celdasAdminSeleccionadas = [];
+    var cargandoBloques = false;
 
     var horariosPorPiso = {
       'Primer Piso': [
@@ -413,7 +414,6 @@
 
       fechaReferenciaSemana = obtenerFechaSinHora(minStr);
 
-      renderizarBloques();
       cargarCursosYAsignaturas();
       cargarVistaSemanal();
     };
@@ -432,10 +432,12 @@
 
     async function renderizarBloques() {
       var contenedor = document.getElementById('contenedorBloques');
-      if (!contenedor) return;
-      contenedor.innerHTML = '';
+      if (!contenedor || cargandoBloques) return;
       
+      cargandoBloques = true;
+      contenedor.innerHTML = '';
       bloquesSeleccionados = [];
+
       var bloquesActuales = horariosPorPiso[labSeleccionado] || horariosPorPiso['Primer Piso'];
       var fechaInput = document.getElementById('fecha') ? document.getElementById('fecha').value : '';
 
@@ -448,6 +450,7 @@
         if (resBloq.data) ocupados = ocupados.concat(resBloq.data.map(b => b.bloque));
       }
 
+      contenedor.innerHTML = ''; // Limpiar de nuevo tras la llamada asíncrona
       bloquesActuales.forEach(function(b) {
         var btn = document.createElement('button');
         btn.type = 'button';
@@ -470,6 +473,8 @@
 
         contenedor.appendChild(btn);
       });
+
+      cargandoBloques = false;
     }
 
     function cargarCursosYAsignaturas() {
@@ -518,7 +523,6 @@
       elementoTab.classList.add('active');
 
       limpiarSeleccionAdmin();
-      renderizarBloques();
       sincronizarFechaReferencia();
       cargarVistaSemanal();
     }
@@ -538,7 +542,6 @@
       inputFecha.value = isoStr;
 
       limpiarSeleccionAdmin();
-      renderizarBloques();
       cargarVistaSemanal();
     }
 
@@ -757,7 +760,6 @@
         mostrarModal('Éxito', 'Reserva realizada correctamente.', '✅');
         bloquesSeleccionados = [];
         
-        renderizarBloques();
         sincronizarFechaReferencia();
         cargarVistaSemanal();
       } catch (err) {
