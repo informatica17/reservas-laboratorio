@@ -354,7 +354,6 @@
     var claveAdminSesion = 'admin123';
     
     var celdasAdminSeleccionadas = [];
-    var cargandoBloques = false;
 
     var horariosPorPiso = {
       'Primer Piso': [
@@ -432,9 +431,9 @@
 
     async function renderizarBloques() {
       var contenedor = document.getElementById('contenedorBloques');
-      if (!contenedor || cargandoBloques) return;
+      if (!contenedor) return;
       
-      cargandoBloques = true;
+      // Limpiar contenedor síncronamente antes de la consulta
       contenedor.innerHTML = '';
       bloquesSeleccionados = [];
 
@@ -450,7 +449,9 @@
         if (resBloq.data) ocupados = ocupados.concat(resBloq.data.map(b => b.bloque));
       }
 
-      contenedor.innerHTML = ''; // Limpiar de nuevo tras la llamada asíncrona
+      // Volver a limpiar por seguridad tras la respuesta asíncrona
+      contenedor.innerHTML = '';
+
       bloquesActuales.forEach(function(b) {
         var btn = document.createElement('button');
         btn.type = 'button';
@@ -473,8 +474,6 @@
 
         contenedor.appendChild(btn);
       });
-
-      cargandoBloques = false;
     }
 
     function cargarCursosYAsignaturas() {
