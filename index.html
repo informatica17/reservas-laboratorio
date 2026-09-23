@@ -3,594 +3,421 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestión de Reservas - Colegio Bicentenario Salesiano Domingo Savio</title>
-  
-  <!-- Carga del SDK cliente de Supabase JS v2 -->
+  <title>Gestión de Reservas de Laboratorios</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS Client v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <style>
-    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: #f4f6f9; margin: 0; padding: 20px; color: #333; }
-
-    .header {
-      text-align: center; background: #003366; color: white; padding: 20px;
-      border-radius: 8px; margin-bottom: 20px; position: relative;
-      display: flex; align-items: center; justify-content: center; gap: 20px;
-    }
-    .header-logo { height: 65px; width: auto; object-fit: contain; }
-    .header-titles { text-align: left; }
-    .header h1 { margin: 5px 0 0 0; font-size: 1.8rem; }
-    .header h2 { margin: 0; font-size: 1rem; font-weight: 300; opacity: 0.9; }
-
-    .btn-admin-login {
-      position: absolute; top: 15px; right: 15px; background: rgba(255, 255, 255, 0.2);
-      border: 1px solid white; color: white; padding: 6px 12px; border-radius: 4px;
-      cursor: pointer; font-size: 0.85rem;
-    }
-    .btn-admin-login:hover { background: rgba(255, 255, 255, 0.4); }
-
-    .tabs { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
-    .tab { padding: 10px 20px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-    .tab.active { background: #003366; color: white; }
-
-    .container { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
-    @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
-
-    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
-    .form-group input, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; }
-
-    .grid-bloques { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    .btn-bloque { padding: 8px; border: 1px solid #0056b3; background: #f8f9fa; color: #0056b3; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
-    .btn-bloque.selected { background: #0056b3; color: white; }
-
-    .btn-submit { width: 100%; padding: 10px; background: #003366; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
-    .semana-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-    .btn-nav { padding: 6px 12px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; }
-
-    .table-container { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; text-align: center; font-size: 0.85rem; }
-    th, td { border: 1px solid #ddd; padding: 8px; }
-    th { background: #f0f4f8; }
-
-    .td-disponible { background: #e8f5e9; color: #2e7d32; }
-    .td-ocupado { background: #ffebee; color: #c62828; }
-    .td-bloqueado { background: #eeeeee; color: #616161; font-weight: bold; }
-    .td-admin-selected { background: #fff59d !important; color: #000 !important; outline: 2px dashed #f57f17; font-weight: bold; }
-
-    .admin-bar-acciones { background: #fff3cd; border: 1px solid #ffeeba; padding: 10px 15px; border-radius: 6px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-    .modal-content { background: white; padding: 25px; border-radius: 8px; text-align: center; max-width: 400px; width: 90%; }
-    .modal-icon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
-  </style>
 </head>
-<body>
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen flex flex-col">
 
-  <div class="header">
-    <img id="imgLogoHeader" src="https://www.domingosavio.cl/images/magone/insignia.png" alt="Insignia Colegio" class="header-logo">
-    <div class="header-titles">
-      <h2>Colegio Bicentenario Salesiano Domingo Savio</h2>
-      <h1>Gestión de Reservas de Laboratorios</h1>
+  <!-- Header / Barra Superior -->
+  <header class="bg-[#003366] text-white p-4 shadow-md flex justify-between items-center px-6">
+    <div class="flex items-center gap-4">
+      <div class="bg-white p-1 rounded">
+        <span class="text-[#003366] font-bold text-xl px-2">S</span>
+      </div>
+      <div>
+        <p class="text-xs uppercase tracking-wider text-gray-200">Colegio Bicentenario Salesiano Domingo Savio</p>
+        <h1 class="text-2xl font-bold">Gestión de Reservas de Laboratorios</h1>
+      </div>
     </div>
-    <button type="button" class="btn-admin-login" onclick="autenticarAdmin()">🔑 Modo Admin</button>
+    <button id="btnAdmin" onclick="toggleAdminModal()" class="bg-slate-700 hover:bg-slate-800 text-amber-300 font-semibold text-sm px-4 py-2 rounded-lg shadow border border-amber-400 flex items-center gap-2">
+      🔑 <span id="lblBtnAdmin">Modo Admin</span>
+    </button>
+  </header>
+
+  <!-- Filtro de Laboratorio / Piso -->
+  <div class="flex justify-center gap-3 my-6">
+    <button id="tabPrimerPiso" onclick="cambiarPiso('Primer Piso')" class="piso-btn px-6 py-2 rounded-lg font-bold shadow transition bg-gray-200 text-gray-700 hover:bg-gray-300">Primer Piso</button>
+    <button id="tabSegundoPiso" onclick="cambiarPiso('Segundo Piso')" class="piso-btn px-6 py-2 rounded-lg font-bold shadow transition bg-[#003366] text-white">Segundo Piso</button>
+    <button id="tabTercerPiso" onclick="cambiarPiso('Tercer Piso')" class="piso-btn px-6 py-2 rounded-lg font-bold shadow transition bg-gray-200 text-gray-700 hover:bg-gray-300">Tercer Piso</button>
   </div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="seleccionarLab('Primer Piso', this)">Primer Piso</button>
-    <button class="tab" onclick="seleccionarLab('Segundo Piso', this)">Segundo Piso</button>
-    <button class="tab" onclick="seleccionarLab('Tercer Piso', this)">Tercer Piso</button>
-  </div>
+  <!-- Contenido Principal -->
+  <main class="max-w-7xl mx-auto w-full px-4 grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 flex-grow">
 
-  <div class="container">
-    <div class="card">
-      <h3>Realizar Reserva</h3>
-      <form onsubmit="procesarFormulario(event)">
-        <div class="form-group">
-          <label for="nombreProfesor">Nombre del Profesor:</label>
-          <input type="text" id="nombreProfesor" required placeholder="Ingrese nombre y apellido">
+    <!-- Formulario de Reserva -->
+    <section class="bg-white p-6 rounded-xl shadow-md border border-gray-200 h-fit">
+      <h2 class="text-xl font-bold mb-4 text-gray-800">Realizar Reserva</h2>
+      
+      <form id="formReserva" onsubmit="guardarReserva(event)" class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Nombre del Profesor:</label>
+          <input type="text" id="profesor" required placeholder="Ingrese nombre y apellido" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
         </div>
 
-        <div class="form-group">
-          <label for="curso">Curso:</label>
-          <select id="curso" required></select>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Curso:</label>
+          <select id="curso" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <option value="">Seleccione una opción...</option>
+            <option value="Kínder A">Kínder A</option>
+            <option value="1° Básico A">1° Básico A</option>
+            <option value="2° Básico A">2° Básico A</option>
+            <option value="3° Básico A">3° Básico A</option>
+            <option value="4° Básico A">4° Básico A</option>
+            <option value="5° Básico A">5° Básico A</option>
+            <option value="6° Básico A">6° Básico A</option>
+            <option value="7° Básico A">7° Básico A</option>
+            <option value="8° Básico A">8° Básico A</option>
+            <option value="1° Medio A">1° Medio A</option>
+            <option value="2° Medio A">2° Medio A</option>
+            <option value="3° Medio A">3° Medio A</option>
+            <option value="4° Medio A">4° Medio A</option>
+          </select>
         </div>
 
-        <div class="form-group">
-          <label for="asignatura">Asignatura:</label>
-          <select id="asignatura" required></select>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1">Asignatura:</label>
+          <input type="text" id="asignatura" required placeholder="Ej: Lenguaje, Matemática..." class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
         </div>
 
-        <div class="form-group">
-          <label for="fecha">Fecha de Reserva:</label>
-          <input type="date" id="fecha" required onchange="sincronizarFechaYRefrescar()">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Fecha:</label>
+            <input type="date" id="fecha" required onchange="actualizarBloquesDisponibles()" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Bloque Horario:</label>
+            <select id="bloque" required class="w-full border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+              <option value="">Seleccione fecha...</option>
+            </select>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label>Seleccione Bloque(s):</label>
-          <div id="contenedorBloques" class="grid-bloques"></div>
-        </div>
-
-        <button type="submit" id="btnConfirmar" class="btn-submit">Confirmar Reserva</button>
+        <button type="submit" class="w-full bg-[#003366] hover:bg-blue-900 text-white font-bold py-3 rounded-lg shadow transition mt-2">
+          Reservar Laboratorio
+        </button>
       </form>
-    </div>
+    </section>
 
-    <div class="card">
-      <div class="semana-header">
-        <button type="button" class="btn-nav" onclick="cambiarSemana(-7)">⬅️ Semana Anterior</button>
-        <h3>Disponibilidad Semanal</h3>
-        <button type="button" class="btn-nav" onclick="cambiarSemana(7)">Semana Siguiente ➡️</button>
+    <!-- Visualización de Disponibilidad Semanal -->
+    <section class="bg-white p-6 rounded-xl shadow-md border border-gray-200 md:col-span-2 overflow-x-auto">
+      <div class="flex justify-between items-center mb-4">
+        <button onclick="cambiarSemana(-1)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-3 py-1.5 rounded text-sm">⬅️ Semana Anterior</button>
+        <h2 class="text-xl font-bold text-gray-800">Disponibilidad Semanal</h2>
+        <button onclick="cambiarSemana(1)" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium px-3 py-1.5 rounded text-sm">Semana Siguiente ➡️</button>
       </div>
 
-      <div id="barraAccionesAdmin" class="admin-bar-acciones" style="display: none;">
-        <span><strong>Celdas seleccionadas:</strong> <span id="contadorSeleccionadosAdmin">0</span></span>
-        <div style="display: flex; gap: 8px;">
-          <button type="button" class="btn-submit" style="background:#dc3545; padding: 6px 12px;" onclick="ejecutarAccionMasiva('BLOQUEAR')">🔒 Bloquear Seleccionados</button>
-          <button type="button" class="btn-submit" style="background:#28a745; padding: 6px 12px;" onclick="ejecutarAccionMasiva('LIBERAR')">🔓 Liberar Seleccionados</button>
-          <button type="button" class="btn-nav" onclick="limpiarSeleccionAdmin()">Limpiar</button>
-        </div>
+      <div id="loading" class="text-center py-8 text-gray-500 font-medium">Cargando disponibilidad...</div>
+      <div id="errorMsg" class="hidden text-center py-8 text-red-600 font-medium">Error al conectar con la base de datos.</div>
+      
+      <table id="tablaHorarios" class="w-full text-sm text-left border-collapse border border-gray-300 hidden">
+        <thead>
+          <tr class="bg-gray-100 text-gray-700 border-b border-gray-300" id="encabezadoDias">
+            <th class="p-2 border border-gray-300">Bloque</th>
+            <!-- Días generados por JS -->
+          </tr>
+        </thead>
+        <tbody id="cuerpoTabla" class="divide-y divide-gray-200">
+          <!-- Filas de bloques generadas por JS -->
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <!-- Modal Admin -->
+  <div id="modalAdmin" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center hidden z-50">
+    <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full mx-4">
+      <h3 class="text-lg font-bold mb-4 text-gray-800">Autenticación Administrador</h3>
+      <input type="password" id="claveAdminInput" placeholder="Ingrese la contraseña" class="w-full border border-gray-300 rounded-lg p-2.5 mb-4 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+      <div class="flex justify-end gap-2">
+        <button onclick="toggleAdminModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm font-semibold">Cancelar</button>
+        <button onclick="loginAdmin()" class="px-4 py-2 bg-[#003366] hover:bg-blue-900 text-white rounded-lg text-sm font-semibold">Ingresar</button>
       </div>
-
-      <div class="table-container">
-        <table id="tablaSemanal">
-          <thead><tr></tr></thead>
-          <tbody><tr><td colspan="6">Cargando horario...</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <div id="seccionAdminPanel" class="container" style="display: none; margin-top: 20px;">
-    <div class="card" style="border: 2px solid #0056b3;">
-      <h3>⚙️ Panel Administrador</h3>
-      <p><small>Haz clic en una o varias celdas de la tabla para seleccionarlas y usa la barra superior para <strong>Bloquear</strong> o <strong>Liberar</strong> en grupo.</small></p>
-      <button type="button" class="btn-submit" style="background-color: #28a745;" onclick="solicitarReporteUso()">📊 Generar Reporte de Uso</button>
-      <div id="contenidoReporte" style="margin-top: 15px;"></div>
-    </div>
-  </div>
-
-  <div id="modalNotificacion" class="modal-overlay" style="display: none;">
-    <div class="modal-content">
-      <span id="modalIcon" class="modal-icon">ℹ️</span>
-      <h3 id="modalTitle">Atención</h3>
-      <p id="modalMessage">Mensaje...</p>
-      <button type="button" class="btn-submit" onclick="cerrarModal()">Aceptar</button>
     </div>
   </div>
 
   <script>
-   // -------------------------------------------------------------
     // -------------------------------------------------------------
-    // CONFIGURACIÓN DE SUPABASE
+    // CONFIGURACIÓN DE SUPABASE (CORREGIDA)
     // -------------------------------------------------------------
-    const SUPABASE_URL = 'https://eivekzpaavvkwgiegrfm.supabase.co';
+    const SUPABASE_URL = 'https://eivekzpaavvkwgjegrfm.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpdmVrenBhYXZ2a3dnamVncmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNDE2NzUsImV4cCI6MjEwNTcxNzY3NX0.X8YwpsAxNASryBwp9q1zlC0vSlG9aiHIEb7iGwNtwLU';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const CLAVE_ADMIN = "admin123";
+    let esAdmin = false;
+    let pisoActual = 'Segundo Piso';
+    let fechaReferenciaSemana = new Date();
 
-    // -------------------------------------------------------------
-    // VARIABLES DE ESTADO LOCAL
-    // -------------------------------------------------------------
-    var labSeleccionado = 'Primer Piso';
-    var fechaReferenciaSemana = new Date();
-    var bloquesSeleccionados = [];
-    var sesionAdminActiva = false;
-    var celdasAdminSeleccionadas = [];
-
-    const cursosLista = [
-      'Pre-Kínder A', 'Kínder A', 'Kínder B',
-      '1° Básico A', '1° Básico B', '2° Básico A', '2° Básico B',
-      '3° Básico A', '3° Básico B', '4° Básico A', '4° Básico B',
-      '5° Básico A', '5° Básico B', '6° Básico A', '6° Básico B',
-      '7° Básico A', '7° Básico B', '8° Básico A', '8° Básico B',
-      'I° Medio A', 'I° Medio B', 'I° Medio C',
-      'II° Medio A', 'II° Medio B', 'II° Medio C',
-      'III° Medio A', 'III° Medio B', 'III° Medio C', 'III° Medio D',
-      'IV° Medio A', 'IV° Medio B', 'IV° Medio C'
+    const BLOQUES = [
+      "1° Bloque (08:00 - 09:30)",
+      "2° Bloque (09:45 - 11:15)",
+      "3° Bloque (11:30 - 13:00)",
+      "4° Bloque (13:45 - 15:15)",
+      "5° Bloque (15:30 - 17:00)"
     ];
 
-    const asignaturasLista = [
-      'Lenguaje y Comunicación', 'Matemáticas', 'Historia, Geografía y C. Sociales',
-      'Ciencias Naturales', 'Biología', 'Física', 'Química', 'Inglés',
-      'Educación Física y Salud', 'Artes Visuales', 'Música', 'Tecnología',
-      'Orientación', 'Religión', 'Otros'
-    ];
-
-    const horariosPorPiso = {
-      'Primer Piso': [
-        { id: 'B1', hora: '08:00 a 08:45' }, { id: 'B2', hora: '08:45 a 09:30' },
-        { id: 'B3', hora: '09:45 a 10:30' }, { id: 'B4', hora: '10:30 a 11:15' },
-        { id: 'B5', hora: '11:30 a 12:15' }, { id: 'B6', hora: '12:15 a 13:00' },
-        { id: 'B7', hora: '13:45 a 14:30' }, { id: 'B8', hora: '14:30 a 15:15' }
-      ],
-      'Segundo Piso': [
-        { id: 'B1', hora: '08:00 a 08:45' }, { id: 'B2', hora: '08:45 a 09:30' },
-        { id: 'B3', hora: '09:30 a 10:15' }, { id: 'B4', hora: '10:35 a 11:20' },
-        { id: 'B5', hora: '11:20 a 12:05' }, { id: 'B6', hora: '12:20 a 13:05' },
-        { id: 'B7', hora: '13:05 a 13:50' }, { id: 'B8', hora: '13:50 a 14:35' },
-        { id: 'B9', hora: '14:35 a 15:20' }, { id: 'B10', hora: '15:20 a 16:05' }
-      ],
-      'Tercer Piso': [
-        { id: 'B1', hora: '08:00 a 08:45' }, { id: 'B2', hora: '08:45 a 09:30' },
-        { id: 'B3', hora: '09:30 a 10:15' }, { id: 'B4', hora: '10:35 a 11:20' },
-        { id: 'B5', hora: '11:20 a 12:05' }, { id: 'B6', hora: '12:20 a 13:05' },
-        { id: 'B7', hora: '13:05 a 13:50' }, { id: 'B8', hora: '13:50 a 14:35' },
-        { id: 'B9', hora: '14:35 a 15:20' }, { id: 'B10', hora: '15:20 a 16:05' }
-      ]
+    // Inicialización
+    window.onload = () => {
+      // Establecer fecha mínima como hoy en el selector
+      const hoyStr = new Date().toISOString().split('T')[0];
+      document.getElementById('fecha').min = hoyStr;
+      
+      cargarHorarios();
     };
 
-    // -------------------------------------------------------------
-    // INICIALIZACIÓN
-    // -------------------------------------------------------------
-    window.onload = function() {
-      var hoy = new Date();
-      var fechaMin = new Date(hoy);
-      fechaMin.setDate(hoy.getDate() + 2);
-      var fechaMax = new Date(hoy);
-      fechaMax.setDate(hoy.getDate() + 14);
-
-      var minStr = formatearFechaIso(fechaMin);
-      var maxStr = formatearFechaIso(fechaMax);
-
-      var inputFecha = document.getElementById('fecha');
-      if (inputFecha) {
-        inputFecha.min = minStr;
-        inputFecha.max = maxStr;
-        inputFecha.value = minStr;
-      }
-
-      fechaReferenciaSemana = obtenerFechaSinHora(minStr);
-
-      poblarSelect('curso', cursosLista);
-      poblarSelect('asignatura', asignaturasLista);
-      renderizarBloques();
-      cargarVistaSemanal();
-    };
-
-    // -------------------------------------------------------------
-    // FUNCIONES AUXILIARES Y FORMATO
-    // -------------------------------------------------------------
-    function formatearFechaIso(fecha) {
-      var d = new Date(fecha);
-      var yyyy = d.getFullYear();
-      var mm = String(d.getMonth() + 1).padStart(2, '0');
-      var dd = String(d.getDate()).padStart(2, '0');
-      return yyyy + '-' + mm + '-' + dd;
-    }
-
-    function obtenerFechaSinHora(cadena) {
-      var p = cadena.split('-');
-      return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
-    }
-
-    function poblarSelect(idSelect, opciones) {
-      var sel = document.getElementById(idSelect);
-      sel.innerHTML = '<option value="">Seleccione una opción...</option>';
-      opciones.forEach(item => {
-        var opt = document.createElement('option');
-        opt.value = item; opt.innerText = item;
-        sel.appendChild(opt);
+    function cambiarPiso(piso) {
+      pisoActual = piso;
+      document.querySelectorAll('.piso-btn').forEach(btn => {
+        btn.classList.remove('bg-[#003366]', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-700');
       });
-    }
 
-    function renderizarBloques() {
-      var contenedor = document.getElementById('contenedorBloques');
-      contenedor.innerHTML = '';
-      bloquesSeleccionados = [];
-      var bloques = horariosPorPiso[labSeleccionado];
+      if (piso === 'Primer Piso') document.getElementById('tabPrimerPiso').className = "piso-btn px-6 py-2 rounded-lg font-bold shadow transition bg-[#003366] text-white";
+      if (piso === 'Segundo Piso') document.getElementById('tabSegundoPiso').className = "piso-btn px-6 py-2 rounded-lg font-bold shadow transition bg-[#003366] text-white";
+      if (piso === 'Tercer Piso') document.getElementById('tabTercerPiso').className = "piso-btn px-6 py-2 rounded-lg font-bold shadow transition bg-[#003366] text-white";
 
-      bloques.forEach(b => {
-        var btn = document.createElement('button');
-        btn.type = 'button'; btn.className = 'btn-bloque'; btn.innerText = b.hora;
-        btn.onclick = function() { seleccionarBloque(this, b.id); };
-        contenedor.appendChild(btn);
-      });
-    }
-
-    function seleccionarBloque(btn, idBloque) {
-      var idx = bloquesSeleccionados.indexOf(idBloque);
-      if (idx > -1) {
-        bloquesSeleccionados.splice(idx, 1);
-        btn.classList.remove('selected');
-      } else {
-        bloquesSeleccionados.push(idBloque);
-        btn.classList.add('selected');
-      }
-    }
-
-    function seleccionarLab(nombreLab, elementoTab) {
-      labSeleccionado = nombreLab;
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      elementoTab.classList.add('active');
-      limpiarSeleccionAdmin();
-      renderizarBloques();
-      sincronizarFechaYRefrescar();
-    }
-
-    function sincronizarFechaYRefrescar() {
-      var inputVal = document.getElementById('fecha').value;
-      if (inputVal) {
-        fechaReferenciaSemana = obtenerFechaSinHora(inputVal);
-      }
-      limpiarSeleccionAdmin();
-      cargarVistaSemanal();
+      cargarHorarios();
     }
 
     function cambiarSemana(dias) {
-      fechaReferenciaSemana.setDate(fechaReferenciaSemana.getDate() + dias);
-      var iso = formatearFechaIso(fechaReferenciaSemana);
-      document.getElementById('fecha').value = iso;
-      limpiarSeleccionAdmin();
-      cargarVistaSemanal();
+      fechaReferenciaSemana.setDate(fechaReferenciaSemana.getDate() + (dias * 7));
+      cargarHorarios();
     }
 
-    // -------------------------------------------------------------
-    // CONSULTAS EN TIEMPO REAL A SUPABASE
-    // -------------------------------------------------------------
-    async function cargarVistaSemanal() {
-      var tbody = document.querySelector('#tablaSemanal tbody');
-      tbody.innerHTML = '<tr><td colspan="6">Cargando disponibilidad...</td></tr>';
+    function obtenerLunesYSabado(d) {
+      const date = new Date(d);
+      const day = date.getDay();
+      const diffLunes = date.getDate() - day + (day === 0 ? -6 : 1);
+      
+      const lunes = new Date(date.setDate(diffLunes));
+      const viernes = new Date(lunes);
+      viernes.setDate(lunes.getDate() + 4);
 
-      // 1. Calcular rango de fechas de la semana
-      var diaSem = fechaReferenciaSemana.getDay();
-      var diffLunes = fechaReferenciaSemana.getDate() - diaSem + (diaSem === 0 ? -6 : 1);
-      var lunes = new Date(fechaReferenciaSemana.getFullYear(), fechaReferenciaSemana.getMonth(), diffLunes);
-
-      var diasSemana = [];
-      var nombres = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-      for (var i = 0; i < 5; i++) {
-        var d = new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() + i);
-        diasSemana.push({
-          nombreDia: nombres[i],
-          fechaIso: formatearFechaIso(d),
-          fechaCorta: d.getDate() + '/' + (d.getMonth() + 1)
-        });
-      }
-
-      var inicioSemana = diasSemana[0].fechaIso;
-      var finSemana = diasSemana[4].fechaIso;
-
-      // 2. Traer Reservas y Bloqueos desde Supabase
-      const { data: reservas, error: errRes } = await _supabase
-        .from('reservas')
-        .select('*')
-        .eq('laboratorio', labSeleccionado)
-        .gte('fecha', inicioSemana)
-        .lte('fecha', finSemana);
-
-      const { data: bloqueos, error: errBloq } = await _supabase
-        .from('bloqueos')
-        .select('*')
-        .eq('laboratorio', labSeleccionado)
-        .gte('fecha', inicioSemana)
-        .lte('fecha', finSemana);
-
-      if (errRes || errBloq) {
-        tbody.innerHTML = '<tr><td colspan="6" style="color:red;">Error al conectar con la base de datos.</td></tr>';
-        return;
-      }
-
-      var matrizReservas = {};
-      (bloqueos || []).forEach(b => {
-        matrizReservas[b.fecha + '_' + b.bloque] = { estado: 'Bloqueado' };
-      });
-      (reservas || []).forEach(r => {
-        matrizReservas[r.fecha + '_' + r.bloque] = {
-          estado: 'Ocupado',
-          profesor: r.profesor,
-          curso: r.curso
-        };
-      });
-
-      renderizarTablaSemanal({
-        bloques: horariosPorPiso[labSeleccionado],
-        diasSemana: diasSemana,
-        matrizReservas: matrizReservas
-      });
+      return { lunes, viernes };
     }
 
-    function renderizarTablaSemanal(datos) {
-      var tabla = document.getElementById('tablaSemanal');
-      var thead = tabla.querySelector('thead tr');
-      var tbody = tabla.querySelector('tbody');
+    async function cargarHorarios() {
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('tablaHorarios').classList.add('hidden');
+      document.getElementById('errorMsg').classList.add('hidden');
 
-      var htmlHead = '<th>Hora</th>';
-      datos.diasSemana.forEach(d => {
-        htmlHead += '<th>' + d.nombreDia + '<br><small>' + d.fechaCorta + '</small></th>';
-      });
-      thead.innerHTML = htmlHead;
+      const { lunes, viernes } = obtenerLunesYSabado(fechaReferenciaSemana);
+      const lunesStr = lunes.toISOString().split('T')[0];
+      const viernesStr = viernes.toISOString().split('T')[0];
 
-      tbody.innerHTML = '';
-      datos.bloques.forEach(b => {
-        var tr = document.createElement('tr');
-        var tdHora = document.createElement('td');
-        tdHora.innerHTML = '<strong>' + b.hora + '</strong>';
-        tr.appendChild(tdHora);
+      try {
+        // Consultar reservas de la semana en Supabase
+        const { data: reservas, error: errRes } = await _supabase
+          .from('reservas')
+          .select('*')
+          .eq('laboratorio', pisoActual)
+          .gte('fecha', lunesStr)
+          .lte('fecha', viernesStr);
 
-        datos.diasSemana.forEach(d => {
-          var td = document.createElement('td');
-          var key = d.fechaIso + '_' + b.id;
-          var estado = datos.matrizReservas[key] || { estado: 'Disponible' };
+        // Consultar bloqueos
+        const { data: bloqueos, error: errBloq } = await _supabase
+          .from('bloqueos')
+          .select('*')
+          .eq('laboratorio', pisoActual)
+          .gte('fecha', lunesStr)
+          .lte('fecha', viernesStr);
 
-          if (estado.estado === 'Bloqueado') {
-            td.className = 'td-bloqueado';
-            td.innerText = '🔒 BLOQUEADO';
-          } else if (estado.estado === 'Ocupado') {
-            td.className = 'td-ocupado';
-            td.innerHTML = '<span>' + estado.profesor + '</span><br><small>' + estado.curso + '</small>';
+        if (errRes || errBloq) throw errRes || errBloq;
+
+        renderizarTabla(lunes, reservas || [], bloqueos || []);
+      } catch (e) {
+        console.error("Error al obtener datos:", e);
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('errorMsg').classList.remove('hidden');
+      }
+    }
+
+    function renderizarTabla(lunes, reservas, bloqueos) {
+      const diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+      const fechasDias = [];
+
+      // Renderizar Encabezado
+      const trEncabezado = document.getElementById('encabezadoDias');
+      trEncabezado.innerHTML = '<th class="p-2 border border-gray-300">Bloque</th>';
+
+      for (let i = 0; i < 5; i++) {
+        const dia = new Date(lunes);
+        dia.setDate(lunes.getDate() + i);
+        const fechaStr = dia.toISOString().split('T')[0];
+        fechasDias.push(fechaStr);
+
+        const diaNum = dia.getDate();
+        const mesNum = dia.getMonth() + 1;
+
+        trEncabezado.innerHTML += `
+          <th class="p-2 border border-gray-300 text-center">
+            ${diasSemana[i]}<br>
+            <span class="text-xs text-gray-500 font-normal">${diaNum}/${mesNum}</span>
+          </th>
+        `;
+      }
+
+      // Renderizar Filas por Bloque
+      const cuerpo = document.getElementById('cuerpoTabla');
+      cuerpo.innerHTML = '';
+
+      BLOQUES.forEach(bloque => {
+        let tr = `<tr><td class="p-2 border border-gray-300 font-medium text-xs bg-gray-50">${bloque}</td>`;
+
+        fechasDias.forEach(fecha => {
+          const res = reservas.find(r => r.fecha === fecha && r.bloque === bloque);
+          const bloq = bloqueos.find(b => b.fecha === fecha && b.bloque === bloque);
+
+          if (bloq) {
+            tr += `
+              <td class="p-2 border border-gray-300 bg-gray-200 text-center align-middle">
+                <span class="text-xs font-bold text-gray-600 block">🔒 Bloqueado</span>
+                ${esAdmin ? `<button onclick="eliminarBloqueo(${bloq.id})" class="mt-1 text-red-600 hover:text-red-800 text-xs underline">Desbloquear</button>` : ''}
+              </td>
+            `;
+          } else if (res) {
+            tr += `
+              <td class="p-2 border border-gray-300 bg-red-50 text-center align-middle">
+                <div class="text-xs">
+                  <span class="font-bold text-red-800 block">${res.profesor}</span>
+                  <span class="text-gray-600 block">${res.curso}</span>
+                  <span class="text-gray-500 italic block">${res.asignatura}</span>
+                  ${esAdmin ? `<button onclick="eliminarReserva(${res.id})" class="mt-1 text-red-600 hover:text-red-800 text-xs underline">Eliminar</button>` : ''}
+                </div>
+              </td>
+            `;
           } else {
-            td.className = 'td-disponible';
-            td.innerText = 'Disponible';
+            tr += `
+              <td class="p-2 border border-gray-300 bg-emerald-50 text-center align-middle">
+                <span class="text-xs text-emerald-700 font-semibold block">Disponible</span>
+                ${esAdmin ? `<button onclick="bloquearBloque('${fecha}', '${bloque}')" class="mt-1 text-gray-600 hover:text-black text-xs underline">Bloquear</button>` : ''}
+              </td>
+            `;
           }
-
-          var yaSeleccionada = celdasAdminSeleccionadas.some(s => s.fecha === d.fechaIso && s.bloque === b.id);
-          if (yaSeleccionada) td.classList.add('td-admin-selected');
-
-          if (sesionAdminActiva) {
-            td.style.cursor = 'pointer';
-            td.onclick = function() { toggleSeleccionAdminCelda(td, d.fechaIso, b.id); };
-          }
-
-          tr.appendChild(td);
         });
-        tbody.appendChild(tr);
+
+        tr += `</tr>`;
+        cuerpo.innerHTML += tr;
       });
+
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('tablaHorarios').classList.remove('hidden');
     }
 
-    // -------------------------------------------------------------
-    // GUARDAR RESERVA
-    // -------------------------------------------------------------
-    async function procesarFormulario(e) {
+    async function actualizarBloquesDisponibles() {
+      const fechaVal = document.getElementById('fecha').value;
+      const selectBloque = document.getElementById('bloque');
+      selectBloque.innerHTML = '<option value="">Cargando bloques...</option>';
+
+      if (!fechaVal) return;
+
+      try {
+        const { data: reservas } = await _supabase
+          .from('reservas')
+          .select('bloque')
+          .eq('laboratorio', pisoActual)
+          .eq('fecha', fechaVal);
+
+        const { data: bloqueos } = await _supabase
+          .from('bloqueos')
+          .select('bloque')
+          .eq('laboratorio', pisoActual)
+          .eq('fecha', fechaVal);
+
+        const ocupados = [
+          ...(reservas || []).map(r => r.bloque),
+          ...(bloqueos || []).map(b => b.bloque)
+        ];
+
+        selectBloque.innerHTML = '<option value="">Seleccione un bloque...</option>';
+        
+        BLOQUES.forEach(bloque => {
+          const estaOcupado = ocupados.includes(bloque);
+          selectBloque.innerHTML += `
+            <option value="${bloque}" ${estaOcupado ? 'disabled class="bg-gray-100 text-gray-400"' : ''}>
+              ${bloque} ${estaOcupado ? '(Ocupado)' : ''}
+            </option>
+          `;
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function guardarReserva(e) {
       e.preventDefault();
-      var inputFecha = document.getElementById('fecha').value;
 
-      if (!sesionAdminActiva) {
-        var hoy = new Date(); hoy.setHours(0,0,0,0);
-        var fechaSel = obtenerFechaSinHora(inputFecha);
-        var difDias = Math.floor((fechaSel - hoy) / (1000 * 60 * 60 * 24));
+      const nuevaReserva = {
+        laboratorio: pisoActual,
+        fecha: document.getElementById('fecha').value,
+        bloque: document.getElementById('bloque').value,
+        profesor: document.getElementById('profesor').value,
+        curso: document.getElementById('curso').value,
+        asignatura: document.getElementById('asignatura').value
+      };
 
-        if (difDias < 2) return mostrarModal('Atención', 'Las reservas deben hacerse con al menos 2 días de anticipación.', '⚠️');
-        if (difDias > 14) return mostrarModal('Atención', 'No se permiten reservas con más de 2 semanas de anticipación.', '⚠️');
+      try {
+        const { error } = await _supabase.from('reservas').insert([nuevaReserva]);
+        if (error) throw error;
+
+        alert('¡Reserva realizada exitosamente!');
+        document.getElementById('formReserva').reset();
+        cargarHorarios();
+      } catch (err) {
+        alert('Error al realizar la reserva: ' + err.message);
       }
+    }
 
-      if (bloquesSeleccionados.length === 0) return mostrarModal('Atención', 'Selecciona al menos un bloque horario.', '⚠️');
+    async function eliminarReserva(id) {
+      if (!confirm('¿Está seguro de eliminar esta reserva?')) return;
+      try {
+        const { error } = await _supabase.from('reservas').delete().eq('id', id);
+        if (error) throw error;
+        cargarHorarios();
+      } catch (err) {
+        alert('Error al eliminar: ' + err.message);
+      }
+    }
 
-      var btn = document.getElementById('btnConfirmar');
-      btn.disabled = true; btn.innerText = 'Guardando reserva...';
+    async function bloquearBloque(fecha, bloque) {
+      try {
+        const { error } = await _supabase.from('bloqueos').insert([{
+          laboratorio: pisoActual,
+          fecha,
+          bloque
+        }]);
+        if (error) throw error;
+        cargarHorarios();
+      } catch (err) {
+        alert('Error al bloquear: ' + err.message);
+      }
+    }
 
-      var profesor = document.getElementById('nombreProfesor').value;
-      var curso = document.getElementById('curso').value;
-      var asignatura = document.getElementById('asignatura').value;
+    async function eliminarBloqueo(id) {
+      try {
+        const { error } = await _supabase.from('bloqueos').delete().eq('id', id);
+        if (error) throw error;
+        cargarHorarios();
+      } catch (err) {
+        alert('Error al desbloquear: ' + err.message);
+      }
+    }
 
-      var ins = bloquesSeleccionados.map(b => ({
-        laboratorio: labSeleccionado,
-        fecha: inputFecha,
-        bloque: b,
-        profesor: profesor,
-        curso: curso,
-        asignatura: asignatura
-      }));
-
-      const { data, error } = await _supabase.from('reservas').insert(ins);
-
-      btn.disabled = false; btn.innerText = 'Confirmar Reserva';
-
-      if (error) {
-        mostrarModal('Error', 'No se pudo registrar la reserva. El bloque ya podría estar ocupado.', '❌');
+    // Lógica Modal Admin
+    function toggleAdminModal() {
+      if (esAdmin) {
+        esAdmin = false;
+        document.getElementById('lblBtnAdmin').innerText = "Modo Admin";
+        cargarHorarios();
       } else {
-        mostrarModal('Éxito', 'Reserva realizada correctamente.', '✅');
-        bloquesSeleccionados = [];
-        document.querySelectorAll('.btn-bloque').forEach(b => b.classList.remove('selected'));
-        sincronizarFechaYRefrescar();
+        document.getElementById('modalAdmin').classList.toggle('hidden');
       }
     }
 
-    // -------------------------------------------------------------
-    // MODULO ADMINISTRADOR
-    // -------------------------------------------------------------
-    function autenticarAdmin() {
-      var claveInput = prompt('Ingrese la clave de administrador:');
-      if (!claveInput) return;
-
-      if (claveInput === CLAVE_ADMIN) {
-        sesionAdminActiva = true;
-        var inputFecha = document.getElementById('fecha');
-        if (inputFecha) { inputFecha.removeAttribute('min'); inputFecha.removeAttribute('max'); }
-
-        mostrarModal('Modo Admin', 'Sesión de administrador activada. Puede seleccionar cualquier fecha.', '🔓');
-        document.getElementById('seccionAdminPanel').style.display = 'block';
-        document.getElementById('barraAccionesAdmin').style.display = 'flex';
-        cargarVistaSemanal();
+    function loginAdmin() {
+      const pass = document.getElementById('claveAdminInput').value;
+      if (pass === CLAVE_ADMIN) {
+        esAdmin = true;
+        document.getElementById('lblBtnAdmin').innerText = "Salir de Modo Admin";
+        document.getElementById('claveAdminInput').value = "";
+        toggleAdminModal();
+        cargarHorarios();
       } else {
-        mostrarModal('Acceso Denegado', 'Clave de administrador incorrecta.', '🔒');
+        alert('Contraseña incorrecta');
       }
-    }
-
-    function toggleSeleccionAdminCelda(elemTd, fechaIso, bloqueId) {
-      if (!sesionAdminActiva) return;
-      var idx = celdasAdminSeleccionadas.findIndex(s => s.fecha === fechaIso && s.bloque === bloqueId);
-
-      if (idx > -1) {
-        celdasAdminSeleccionadas.splice(idx, 1);
-        elemTd.classList.remove('td-admin-selected');
-      } else {
-        celdasAdminSeleccionadas.push({ fecha: fechaIso, bloque: bloqueId });
-        elemTd.classList.add('td-admin-selected');
-      }
-      document.getElementById('contadorSeleccionadosAdmin').innerText = celdasAdminSeleccionadas.length;
-    }
-
-    function limpiarSeleccionAdmin() {
-      celdasAdminSeleccionadas = [];
-      var cnt = document.getElementById('contadorSeleccionadosAdmin');
-      if (cnt) cnt.innerText = '0';
-      document.querySelectorAll('.td-admin-selected').forEach(td => td.classList.remove('td-admin-selected'));
-    }
-
-    async function ejecutarAccionMasiva(accion) {
-      if (!sesionAdminActiva || celdasAdminSeleccionadas.length === 0) {
-        return mostrarModal('Atención', 'Selecciona al menos una celda de la tabla.', '⚠️');
-      }
-
-      if (!confirm('¿Seguro de ' + accion + ' las ' + celdasAdminSeleccionadas.length + ' celdas seleccionadas?')) return;
-
-      if (accion === 'BLOQUEAR') {
-        var bloqueosNuevos = celdasAdminSeleccionadas.map(s => ({
-          laboratorio: labSeleccionado, fecha: s.fecha, bloque: s.bloque
-        }));
-        await _supabase.from('bloqueos').insert(bloqueosNuevos);
-      } else if (accion === 'LIBERAR') {
-        for (var item of celdasAdminSeleccionadas) {
-          await _supabase.from('bloqueos').delete().match({ laboratorio: labSeleccionado, fecha: item.fecha, bloque: item.bloque });
-          await _supabase.from('reservas').delete().match({ laboratorio: labSeleccionado, fecha: item.fecha, bloque: item.bloque });
-        }
-      }
-
-      mostrarModal('Éxito', 'Acción realizada correctamente.', '✅');
-      limpiarSeleccionAdmin();
-      cargarVistaSemanal();
-    }
-
-    async function solicitarReporteUso() {
-      const { data: reservas } = await _supabase.from('reservas').select('*');
-      var contenedor = document.getElementById('contenidoReporte');
-
-      if (!reservas || reservas.length === 0) {
-        contenedor.innerHTML = '<p>No hay reservas registradas.</p>';
-        return;
-      }
-
-      var porLab = {}, porCurso = {}, porProfesor = {};
-      reservas.forEach(r => {
-        porLab[r.laboratorio] = (porLab[r.laboratorio] || 0) + 1;
-        porCurso[r.curso] = (porCurso[r.curso] || 0) + 1;
-        porProfesor[r.profesor] = (porProfesor[r.profesor] || 0) + 1;
-      });
-
-      var html = '<div style="background:#fff; padding:15px; border-radius:6px; border:1px solid #ddd;">';
-      html += '<p><strong>Total bloques reservados:</strong> ' + reservas.length + '</p>';
-      html += '<strong>Por Laboratorio:</strong><ul>';
-      for (var l in porLab) html += '<li>' + l + ': ' + porLab[l] + '</li>';
-      html += '</ul><strong>Por Curso:</strong><ul>';
-      for (var c in porCurso) html += '<li>' + c + ': ' + porCurso[c] + '</li>';
-      html += '</ul><strong>Por Profesor:</strong><ul>';
-      for (var p in porProfesor) html += '<li>' + p + ': ' + porProfesor[p] + '</li>';
-      html += '</ul></div>';
-
-      contenedor.innerHTML = html;
-    }
-
-    function mostrarModal(titulo, mensaje, icono) {
-      document.getElementById('modalTitle').innerText = titulo;
-      document.getElementById('modalMessage').innerText = mensaje;
-      document.getElementById('modalIcon').innerText = icono || 'ℹ️';
-      document.getElementById('modalNotificacion').style.display = 'flex';
-    }
-
-    function cerrarModal() {
-      document.getElementById('modalNotificacion').style.display = 'none';
     }
   </script>
 </body>
