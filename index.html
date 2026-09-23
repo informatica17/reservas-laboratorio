@@ -1,4 +1,346 @@
-// -------------------------------------------------------------
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <title>Gestión de Reservas - Colegio Bicentenario Salesiano Domingo Savio</title>
+  
+  <!-- Ícono de la pestaña del navegador (Favicon) -->
+  <link rel="icon" type="image/png" href="https://www.domingosavio.cl/images/magone/insignia.png">
+
+  <!-- Supabase JS Client v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+
+    .header {
+      text-align: center;
+      background: #003366;
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .header-logo {
+      height: 65px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .header-titles {
+      text-align: left;
+    }
+
+    .header h1 { margin: 5px 0 0 0; font-size: 1.8rem; }
+    .header h2 { margin: 0; font-size: 1rem; font-weight: 300; opacity: 0.9; }
+
+    @media (max-width: 768px) {
+      .header {
+        flex-direction: column;
+        text-align: center;
+      }
+      .header-titles {
+        text-align: center;
+      }
+    }
+
+    .btn-admin-login {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid white;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .btn-admin-login:hover { background: rgba(255, 255, 255, 0.4); }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      background: #e0e0e0;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .tab.active {
+      background: #003366;
+      color: white;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .grid-bloques {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .btn-bloque {
+      padding: 8px;
+      border: 1px solid #0056b3;
+      background: #f8f9fa;
+      color: #0056b3;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .btn-bloque.selected {
+      background: #0056b3;
+      color: white;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 10px;
+      background: #003366;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .semana-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .btn-nav {
+      padding: 6px 12px;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .table-container { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: center;
+      font-size: 0.85rem;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+
+    th { background: #f0f4f8; }
+
+    .td-disponible { background: #e8f5e9; color: #2e7d32; }
+    .td-ocupado { background: #ffebee; color: #c62828; }
+    .td-bloqueado { background: #eeeeee; color: #616161; font-weight: bold; }
+    
+    .td-admin-selected {
+      background: #fff59d !important;
+      color: #000 !important;
+      outline: 2px dashed #f57f17;
+      font-weight: bold;
+    }
+
+    .admin-bar-acciones {
+      background: #fff3cd;
+      border: 1px solid #ffeeba;
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: 8px;
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+
+    .modal-icon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <img src="https://www.domingosavio.cl/images/magone/insignia.png" alt="Insignia Colegio" class="header-logo">
+    <div class="header-titles">
+      <h2>Colegio Bicentenario Salesiano Domingo Savio</h2>
+      <h1>Gestión de Reservas de Laboratorios</h1>
+    </div>
+    <button type="button" class="btn-admin-login" onclick="autenticarAdmin()">🔑 Modo Admin</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="seleccionarLab('Primer Piso', this)">Primer Piso</button>
+    <button class="tab" onclick="seleccionarLab('Segundo Piso', this)">Segundo Piso</button>
+    <button class="tab" onclick="seleccionarLab('Tercer Piso', this)">Tercer Piso</button>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h3>Realizar Reserva</h3>
+      <form onsubmit="procesarFormulario(event)">
+        <div class="form-group">
+          <label for="nombreProfesor">Nombre del Profesor:</label>
+          <input type="text" id="nombreProfesor" required placeholder="Ingrese nombre y apellido">
+        </div>
+
+        <div class="form-group">
+          <label for="curso">Curso:</label>
+          <select id="curso" required>
+            <option value="">Cargando cursos...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="asignatura">Asignatura:</label>
+          <select id="asignatura" required>
+            <option value="">Cargando asignaturas...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="fecha">Fecha de Reserva:</label>
+          <input type="date" id="fecha" required onchange="cargarVistaSemanal()">
+        </div>
+
+        <div class="form-group">
+          <label>Seleccione Bloque(s):</label>
+          <div id="contenedorBloques" class="grid-bloques"></div>
+        </div>
+
+        <button type="submit" id="btnConfirmar" class="btn-submit">Confirmar Reserva</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="semana-header">
+        <button type="button" class="btn-nav" onclick="cambiarSemana(-7)">⬅️ Semana Anterior</button>
+        <h3>Disponibilidad Semanal</h3>
+        <button type="button" class="btn-nav" onclick="cambiarSemana(7)">Semana Siguiente ➡️</button>
+      </div>
+
+      <div id="barraAccionesAdmin" class="admin-bar-acciones" style="display: none;">
+        <span><strong>Celdas seleccionadas:</strong> <span id="contadorSeleccionadosAdmin">0</span></span>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn-submit" style="background:#dc3545; padding: 6px 12px;" onclick="ejecutarAccionMasiva('BLOQUEAR')">🔒 Bloquear Seleccionados</button>
+          <button type="button" class="btn-submit" style="background:#28a745; padding: 6px 12px;" onclick="ejecutarAccionMasiva('LIBERAR')">🔓 Liberar Seleccionados</button>
+          <button type="button" class="btn-nav" onclick="limpiarSeleccionAdmin()">Limpiar</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table id="tablaSemanal">
+          <thead>
+            <tr></tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="6">Cargando horario...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="seccionAdminPanel" class="container" style="display: none; margin-top: 20px;">
+    <div class="card" style="border: 2px solid #0056b3;">
+      <h3>⚙️ Panel Administrador</h3>
+      <p><small>Haz clic en una o varias celdas de la tabla para seleccionarlas y usa la barra superior para <strong>Bloquear</strong> o <strong>Liberar</strong> en grupo.</small></p>
+      <button type="button" class="btn-submit" style="background-color: #28a745;" onclick="solicitarReporteUso()">📊 Generar Reporte de Uso</button>
+      <div id="contenidoReporte" style="margin-top: 15px;"></div>
+    </div>
+  </div>
+
+  <div id="modalNotificacion" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <span id="modalIcon" class="modal-icon">ℹ️</span>
+      <h3 id="modalTitle">Atención</h3>
+      <p id="modalMessage">Mensaje...</p>
+      <button type="button" class="btn-submit" onclick="cerrarModal()">Aceptar</button>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
     // CONFIGURACIÓN DE SUPABASE
     // -------------------------------------------------------------
     const SUPABASE_URL = 'https://eivekzpaavvkwgjegrfm.supabase.co';
@@ -97,7 +439,6 @@
       var bloquesActuales = horariosPorPiso[labSeleccionado] || horariosPorPiso['Primer Piso'];
       var fechaInput = document.getElementById('fecha') ? document.getElementById('fecha').value : '';
 
-      // Obtener bloques ya ocupados en la fecha seleccionada
       var ocupados = [];
       if (fechaInput) {
         var resRes = await _supabase.from('reservas').select('bloque').eq('laboratorio', labSeleccionado).eq('fecha', fechaInput);
@@ -111,16 +452,17 @@
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'btn-bloque';
-        var esOcupado = ocupados.includes(b.id);
+
+        var esOcupado = ocupados.includes(b.id) || ocupados.includes(b.hora);
 
         if (esOcupado) {
           btn.innerText = b.hora + ' (Ocupado)';
           btn.disabled = true;
           btn.style.opacity = '0.5';
           btn.style.cursor = 'not-allowed';
-          btn.style.background = '#e0e0e0';
-          btn.style.borderColor = '#ccc';
-          btn.style.color = '#888';
+          btn.style.background = '#ffebee';
+          btn.style.borderColor = '#ffcdd2';
+          btn.style.color = '#c62828';
         } else {
           btn.innerText = b.hora;
           btn.onclick = function() { seleccionarBloque(this, b.id); };
@@ -364,35 +706,37 @@
 
       var btnSubmit = document.getElementById('btnConfirmar');
       btnSubmit.disabled = true;
-      btnSubmit.innerText = 'Guardando reserva...';
+      btnSubmit.innerText = 'Verificando disponibilidad...';
 
       try {
-        // --- VALIDACIÓN DE DISPONIBILIDAD ANTES DE GUARDAR ---
         var checkRes = await _supabase.from('reservas')
           .select('bloque, profesor')
           .eq('laboratorio', labSeleccionado)
-          .eq('fecha', inputFecha)
-          .in('bloque', bloquesSeleccionados);
+          .eq('fecha', inputFecha);
 
         var checkBloq = await _supabase.from('bloqueos')
           .select('bloque')
           .eq('laboratorio', labSeleccionado)
-          .eq('fecha', inputFecha)
-          .in('bloque', bloquesSeleccionados);
+          .eq('fecha', inputFecha);
 
-        if ((checkRes.data && checkRes.data.length > 0) || (checkBloq.data && checkBloq.data.length > 0)) {
+        var ocupadosBD = [];
+        if (checkRes.data) ocupadosBD = ocupadosBD.concat(checkRes.data.map(r => r.bloque));
+        if (checkBloq.data) ocupadosBD = ocupadosBD.concat(checkBloq.data.map(b => b.bloque));
+
+        var conflicto = bloquesSeleccionados.some(bId => ocupadosBD.includes(bId));
+
+        if (conflicto) {
           btnSubmit.disabled = false;
           btnSubmit.innerText = 'Confirmar Reserva';
           
-          var prof = (checkRes.data && checkRes.data[0]) ? checkRes.data[0].profesor : '';
-          var msj = prof ? 'El bloque seleccionado ya fue reservado por el profesor(a) ' + prof + '.' : 'Uno o más bloques seleccionados ya no se encuentran disponibles.';
-          
-          mostrarModal('Bloque No Disponible', msj, '❌');
+          mostrarModal('Bloque No Disponible', 'El bloque seleccionado ya fue reservado por otro profesor o se encuentra bloqueado.', '❌');
+          renderizarBloques();
           cargarVistaSemanal();
           return;
         }
 
-        // --- SI ESTÁ LIBRE, SE GUARDA ---
+        btnSubmit.innerText = 'Guardando reserva...';
+
         var registros = bloquesSeleccionados.map(function(bloqueId) {
           return {
             laboratorio: labSeleccionado,
@@ -412,8 +756,8 @@
 
         mostrarModal('Éxito', 'Reserva realizada correctamente.', '✅');
         bloquesSeleccionados = [];
-        document.querySelectorAll('.btn-bloque').forEach(function(b) { b.classList.remove('selected'); });
         
+        renderizarBloques();
         sincronizarFechaReferencia();
         cargarVistaSemanal();
       } catch (err) {
@@ -578,3 +922,6 @@
     function cerrarModal() {
       document.getElementById('modalNotificacion').style.display = 'none';
     }
+  </script>
+</body>
+</html>
