@@ -246,7 +246,7 @@
       <h2>Colegio Bicentenario Salesiano Domingo Savio</h2>
       <h1>Gestión de Reservas de Laboratorios</h1>
     </div>
-    <button type="button" class="btn-admin-login" onclick="autenticarAdmin()">🔑 Modo Admin</button>
+    <button type="button" id="btnAdminLogin" class="btn-admin-login" onclick="autenticarAdmin()">🔑 Modo Admin</button>
   </div>
 
   <div class="tabs">
@@ -261,7 +261,7 @@
       <form onsubmit="procesarFormulario(event)">
         <div class="form-group">
           <label for="nombreProfesor">Nombre del Profesor:</label>
-          <input type="text" id="nombreProfesor" required placeholder="Ingrese nombre y apellido">
+          <input type="text" id="nombreProfesor" required placeholder="Ingrese nombre y apellido" maxlength="60">
         </div>
 
         <div class="form-group">
@@ -351,7 +351,6 @@
     var fechaReferenciaSemana = new Date();
     var bloquesSeleccionados = [];
     var sesionAdminActiva = false;
-    var claveAdminSesion = 'admin123';
     
     var celdasAdminSeleccionadas = [];
 
@@ -391,6 +390,21 @@
         { id: 'B10', hora: '15:20 a 16:05' }
       ]
     };
+
+    // Función para sanitizar entrada de usuario (Previene XSS y datos maliciosos)
+    function sanitizarTexto(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"'/]/g, function(s) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+          '/': '&#x2F;'
+        }[s];
+      }).trim();
+    }
 
     window.onload = function() {
       var hoy = new Date();
@@ -433,7 +447,6 @@
       var contenedor = document.getElementById('contenedorBloques');
       if (!contenedor) return;
       
-      // Limpiar contenedor síncronamente antes de la consulta
       contenedor.innerHTML = '';
       bloquesSeleccionados = [];
 
@@ -449,7 +462,6 @@
         if (resBloq.data) ocupados = ocupados.concat(resBloq.data.map(b => b.bloque));
       }
 
-      // Volver a limpiar por seguridad tras la respuesta asíncrona
       contenedor.innerHTML = '';
 
       bloquesActuales.forEach(function(b) {
@@ -640,7 +652,7 @@
             td.innerText = '🔒 BLOQUEADO';
           } else if (estado.estado === 'Ocupado') {
             td.className = 'td-ocupado';
-            td.innerHTML = '<span>' + (estado.profesor || 'Reservado') + '</span><br><small>' + (estado.curso || '') + '</small>';
+            td.innerHTML = '<span>' + sanitizarTexto(estado.profesor || 'Reservado') + '</span><br><small>' + sanitizarTexto(estado.curso || '') + '</small>';
           } else {
             td.className = 'td-disponible';
             td.innerText = 'Disponible';
@@ -739,13 +751,17 @@
 
         btnSubmit.innerText = 'Guardando reserva...';
 
+        var nombreProf = sanitizarTexto(document.getElementById('nombreProfesor').value);
+        var cursoSel = sanitizarTexto(document.getElementById('curso').value);
+        var asigSel = sanitizarTexto(document.getElementById('asignatura').value);
+
         var registros = bloquesSeleccionados.map(function(bloqueId) {
           return {
             laboratorio: labSeleccionado,
             fecha: inputFecha,
-            profesor: document.getElementById('nombreProfesor').value,
-            curso: document.getElementById('curso').value,
-            asignatura: document.getElementById('asignatura').value,
+            profesor: nombreProf,
+            curso: cursoSel,
+            asignatura: asigSel,
             bloque: bloqueId
           };
         });
@@ -768,12 +784,35 @@
       }
     }
 
-    function autenticarAdmin() {
-      var claveInput = prompt('Ingrese la clave de administrador:');
+    // Autenticación Segura con Supabase Auth
+    async function autenticarAdmin() {
+      if (sesionAdminActiva) {
+        await _supabase.auth.signOut();
+        sesionAdminActiva = false;
+        document.getElementById('btnAdminLogin').innerText = '🔑 Modo Admin';
+        document.getElementById('seccionAdminPanel').style.display = 'none';
+        document.getElementById('barraAccionesAdmin').style.display = 'none';
+        mostrarModal('Sesión Cerrada', 'Has salido del modo administrador.', '🔒');
+        cargarVistaSemanal();
+        return;
+      }
+
+      var emailInput = prompt('Ingrese correo de administrador:');
+      if (!emailInput) return;
+
+      var claveInput = prompt('Ingrese clave de administrador:');
       if (!claveInput) return;
 
-      if (claveInput === claveAdminSesion) {
+      try {
+        const { data, error } = await _supabase.auth.signInWithPassword({
+          email: emailInput,
+          password: claveInput
+        });
+
+        if (error) throw error;
+
         sesionAdminActiva = true;
+        document.getElementById('btnAdminLogin').innerText = '🚪 Cerrar Sesión Admin';
 
         var inputFecha = document.getElementById('fecha');
         if (inputFecha) {
@@ -781,12 +820,12 @@
           inputFecha.removeAttribute('max');
         }
 
-        mostrarModal('Modo Admin', 'Sesión de administrador activada. Puede seleccionar cualquier fecha.', '🔓');
+        mostrarModal('Modo Admin', 'Sesión de administrador activada correctamente.', '🔓');
         document.getElementById('seccionAdminPanel').style.display = 'block';
         document.getElementById('barraAccionesAdmin').style.display = 'flex';
         cargarVistaSemanal();
-      } else {
-        mostrarModal('Acceso Denegado', 'Clave de administrador incorrecta.', '🔒');
+      } catch (err) {
+        mostrarModal('Acceso Denegado', err.message || 'Credenciales incorrectas.', '🔒');
       }
     }
 
@@ -899,15 +938,15 @@
       html += '<p><strong>Total de bloques reservados:</strong> ' + datos.totalReservas + '</p>';
 
       html += '<strong>Por Laboratorio:</strong><ul>';
-      for (var l in datos.porLab) { html += '<li>' + l + ': ' + datos.porLab[l] + ' bloque(s)</li>'; }
+      for (var l in datos.porLab) { html += '<li>' + sanitizarTexto(l) + ': ' + datos.porLab[l] + ' bloque(s)</li>'; }
       html += '</ul>';
 
       html += '<strong>Por Curso:</strong><ul>';
-      for (var c in datos.porCurso) { html += '<li>' + c + ': ' + datos.porCurso[c] + ' bloque(s)</li>'; }
+      for (var c in datos.porCurso) { html += '<li>' + sanitizarTexto(c) + ': ' + datos.porCurso[c] + ' bloque(s)</li>'; }
       html += '</ul>';
 
       html += '<strong>Por Profesor:</strong><ul>';
-      for (var p in datos.porProfesor) { html += '<li>' + p + ': ' + datos.porProfesor[p] + ' bloque(s)</li>'; }
+      for (var p in datos.porProfesor) { html += '<li>' + sanitizarTexto(p) + ': ' + datos.porProfesor[p] + ' bloque(s)</li>'; }
       html += '</ul></div>';
 
       contenedor.innerHTML = html;
